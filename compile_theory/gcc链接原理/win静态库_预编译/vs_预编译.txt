@@ -1,0 +1,33 @@
+<< 如何在vs 中使用预编译 >>??
+#ifdef
+  #define
+#else 
+  #define
+#endif
+
+
+VS 是不允许乱添加预编译的, 所有预编译的定义, 都必须包含在StdAfx.h 中,
+实现都应该在StdAfx.cpp 中, 一般只需要定义即可, 
+我也不知道StdAfx.cpp 有什么用, 但是不能少
+
+anyway: 
+但是如果全部预编译都定义在StdAfx.h 上面, 未免,,, 太难看了, 那么:
+可以在StdAfx.h 中, 添加如下预编译:
+
+
+#if !defined(AFX_STDAFX_H__463C432C_A816_4F09_9194_600D095D7EAC__INCLUDED_)
+#define AFX_STDAFX_H__463C432C_A816_4F09_9194_600D095D7EAC__INCLUDED_
+
+//*************
+// TODO: reference additional headers your program requires here
+#include "AsyncInbound.h"//添加新预编译for AsyncInbound
+//*************
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_STDAFX_H__463C432C_A816_4F09_9194_600D095D7EAC__INCLUDED_)
+
+
+这样就可以用头文件来划分预编译了
+

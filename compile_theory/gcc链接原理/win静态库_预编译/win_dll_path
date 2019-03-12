@@ -1,0 +1,10 @@
+windows 下, 指认dll 库的方法:
+
+电脑-> 属性-> 高级系统属性-> 高级-> 环境变量-> path
+
+直接将dll 所在的目录路径; 号添加进去即可, 
+像添加MINGW bin/inculde/lib 路径一样, 
+这种方法类似于: 在linux 系统下面, 将so 库放进/usr/lib
+将.h 头文件放进/usr/inculde 一样 !!
+
+用了这种方式, 其实类似eclipse 指认-l, 效果都是一样的

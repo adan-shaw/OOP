@@ -1,0 +1,164 @@
+简述: 如何生成'linux 编程库' !!
+
+gcc 链接之后的产物, 有静态链接库, 动态链接库, 动态装载库, (可执行程序). 四种!!
+其中, 属于'编程库'的有: 静态链接库, 动态链接库, 动态装载库, 3种!!
+
+'动态装载库'内的函数分为两种： 
+  (1)so/dll导出函数, 可供应用程序调用;(已经写入'导出函数列表'的'动态装载库'导出函数)
+  (2)so/dll内部函数, 只能在DLL程序使用, 应用程序无法调用它们(没有写入'导出函数列表'的'动态装载库'内部函数)
+
+
+  3 种库对应的后缀是.a .so .so, 但是linux 系统本身, 是不以后缀来判断文件类型的, 
+  所以这里只是为了明示使用者, 告诉他们, 这是什么库.
+
+  windows 下有.lib .dll .dll 与之对应;
+  .obj 与.o 文件与之对应, 都是编译之后的中间代码, 未链接状态的代码, 函数可以找不到.
+  [undefined reference to 'func_xxx' ...]
+  {passed, 不想理会windows 系统.}
+
+
+注意, 编译器查找'连接库'时, 有隐含的命名规则:
+  lib_xxx_.a lib_xxx_.so
+  去掉lib 前缀, 去掉.a 或者.so 后面的所有后缀,
+  在使用-l 链接选项, 'LDFLAGS链接选项'指定的时候, 这就是命名规则.
+  (ps: 仅对静态, 动态链接库有效, 动态装载库无效.)
+
+
+注意2:
+  #pragma comment(lib, "");//windows 特有命令, bullshit, passed !!
+  like-unix 上面没有类似的实现
+  参考: win静态库_预编译
+
+
+
+anyway !!
+
+
+
+*1.如何生成静态链接库? (实验demo 请看how2make_lib1test)
+  答:
+    静态链接库由ar 工具打包所有编译好的.o 文件, 生成.a 静态链接库;
+    (不能用ld 工具链接, ld 工具链接, 需要main() 主函数, 才能-o 输出成功, 所以ld 工具是生成可执行文件的.)
+
+
+  使用gcc生成'静态链接库', 以及'静态链接库'使用方法：
+    用test.c 编译生成test.o, ar 工具打包出libtest.a, test.h为libtest.a对应的头文件. 
+    第一步：生成test.o目标文件, 使用: gcc -c test.c -o test.o命令. 
+
+    第二步：使用ar将test.o打包成libtest.a静态库, 
+           使用: ar -crv libtest.a test.o
+
+    第三步：生成libtest.a静态库后, 
+           ar t ./libtest.a # 查看libtest.a 文件中包含哪些文件.
+           nm -s ./libtest.a # 查看libtest.a 的'链接函数名'和'链接位置'
+
+    第四步：编译main.c, 并使用libtest.a静态库, 
+           链接时-l参数后不加空格指定所需要链接的库, 这里库名是libtest.a, 
+           但是只需要给出-ltest即可, ld会以libtest作为库的实际名字. 
+           完整的命令为：gcc -o x main.c -L. -ltest 
+           或者是gcc -o x main.c libtest.a
+
+    第五步：运行app_static
+
+    直接使用命令./x
+
+
+
+
+
+*2.如何生成动态链接库? (实验demo 请看how2make_lib2test)
+  答:
+    细节1(编译时添加):
+      '编译时'添加-fPIC, 生成位置无关的代码, 达到代码段和数据段共享的目的.
+      # gcc -c -fPIC test.c # 编译hello.c时也需要加上-fpic选项
+      ( 否则: rodata' can not be used when making a shared object; recompile with -fPIC )
+
+      -fPIC 作用于'编译阶段', 告诉编译器产生与位置无关代码(Position-Independent Code). 
+      那么在产生的代码中, 没有绝对地址, 全部使用相对地址, 
+      故而代码可以被加载器加载到内存的任意位置, 都可以正确的执行. 
+      这正是共享库所要求的, 共享库被加载时, 在内存的位置不是固定的. 
+
+      如果不加-fPIC, 则编译出来的代码在加载时需要根据加载到的位置进行重定位(因为它里面的代码并不是位置无关代码), 
+      如果被多个应用程序共同使用, 那么它们必须每个程序维护一份so的代码副本了.
+      (因为so被每个程序加载的位置都不同,显然这些重定位后的代码也不同,当然不能共享). 
+
+
+    细节2(链接时添加):
+      -shared 该选项指定生成动态连接库(让连接器生成T类型的导出符号表, 有时候也生成弱连接W类型的导出符号), 
+      不用该标志外部程序无法连接. 相当于一个可执行文件.
+      (但是无导出函数列表, 这样的动态链接库, 就是废物嘛!! 有什么用??)
+      由于生成'动态链接库'是使用gcc -o 命令的, 那么: 
+        根据gcc -o 链接规则, 如果没有-shared 选项, 就要有main() 函数, 否则链接会报错:
+          ld: warning: cannot find entry symbol _start; defaulting to 0000000000400120
+          虽然ld 链接成功, 但是运行可执行文件会出错, 原因是没有找到main() 函数, 而导致入口指针cant found 溢出
+        或者gcc 编译: 
+          undefined reference to `main'
+          gcc 直接不让你通过链接, gcc需要main() 主函数, 才能-o 输出成功, 所以ld 工具是生成可执行文件的.)
+          gcc -o x ./test.o ./main.o -lc # -lc = libc.so.6, 表示链接C 语言runtime 库
+
+          # ld 链接器失败, ld: warning: cannot find entry symbol _start; defaulting to ...
+          # 链接工作还是交给gcc 自动处理比较好, ld(GNU linker)工具还是退居幕后吧
+          ld -o x ./test.o ./main.o -lc # 失败(不能运行)
+          ld -dynamic-linker /lib/ld-linux.so.2 -lc -o x ./test.o ./main.o # 失败
+          ld -static-linker /lib/ld-linux.so.2 -lc -o x ./test.o ./main.o # 失败
+
+
+第一步：生成test.o目标文件, 使用如下命令. 
+       在此处需要添加-fPIC参数, 该参数用于生成位置无关代码已工生成动态库使用, 
+       使用命令：gcc -c -o test.o -fPIC test.c
+
+第二步：使用-shared参数生成动态库, 
+       使用如下命令：gcc -shared -o libtest2.so test.o
+       上述两个命令可以连在一起, 
+       如下所示：gcc -shared -fPIC -o libtest2.so test.c
+
+第三步：编译main.c, 生成'可执行程序',
+       命令如下: gcc -o x main.c -L. -ltest2 -lc
+       注意, 生成后, 直接执行, 会出现:
+       ./x: error while loading shared libraries: libtest2.so: cannot open shared object file: No such file or directory
+       原因:
+         系统找不到你自定义的动态库路径, -L., 你可以通过ldd ./x 来查看动态库依赖关系, 看看有没有not found 选项;
+         如果有哪个库出现 ==> not found , 表示系统不能找到该'动态链接库'.
+         (ps: 静态链接库, 静态编译, 不存在这样的问题, 动态链接库, 节省内存, 因此会出现这样的问题.)
+       ldd ./libtest2.so # 查看'动态链接库'本身的链接完整情况
+       ldd ./x # 查看'可执行程序'本身的链接完整情况
+
+
+  从上述可知, 如何找到'动态链接库'有3种方式：
+
+  (1)把'动态链接库'拷贝到/usr/lib和/lib目录下. 
+
+  (2)在LD_LIBRARY_PATH环境变量中加上库所在路径. 
+     例如：
+       '动态链接库'libtest2.so在/home/example/lib目录下：
+       export LD_LIBRARY_PATH=LD_LIBRARY_PATH:/home/example/lib
+       export LD_LIBRARY_PATH=LD_LIBRARY_PATH:. # 重启失效
+
+  (3)修改/etc/ld.so.conf文件, 把'动态链接库'所在的路径加到文件末尾
+     (直接写在文件末尾, 不要在路径前加include), 
+     并执行ldconfig刷新(ldconfig 命令的用途,主要是在默认搜寻目录(/lib和/usr/lib),
+     以及'动态链接库'配置文件/etc/ld.so.conf内所列的目录下,
+     搜索出可共享的'动态链接库'(格式如前介绍,lib*.so*),
+     进而创建出动态装入程序(ld.so)所需的连接和缓存文件.
+     缓存文件默认为/etc/ld.so.cache, 此文件保存已排好序的动态链接库名字列表.)
+
+  附：像下面这样指定路径去连接系统的静态库, 会报错说要连接的库找不到:
+  g++ -o main main.cpp -L/usr/lib libpthread.a 
+  (这里是'网文作者'理解错误了, libpthread.so.xxx 是一个动态库, 节省内存, .a 静态库是静态编译的.)
+
+  必须这样g++ -o main main.cpp -L/usr/lib -lpthread才正确. (ps: 这样其实就是动态链接库)
+
+
+
+
+
+*3.如何生成动态装载库??
+   动态加载库和一般的动态链接库所不同的是, 一般动态链接库在程序启动时就要寻找动态库, 找到库函数;
+   而动态加载库可以用程序的方法来控制什么时候加载. 
+   动态加载库主要有函数dlopen()、dlerror()、dlsym()和dlclose()来控制动态库的使用.
+   参考: so动态装载库demo
+
+
+
+
+

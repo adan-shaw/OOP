@@ -1,0 +1,129 @@
+# 快捷命令:: ldd ./x # 简单使用即可, ldd 本身就一个功能, 就是查看'动态链接库'的依赖关系.
+
+*
+*1.ldd 工具使用概述:
+*
+ldd 工具, 主要用来查看'动态链接库'的依赖关系, 是否完整！！
+
+如果依赖关系不完整, 就会出现==> not found 选项, 
+表示这个'动态链接库'虽然'编译的时候'找到了, 但是运行的时候, 没有找到, 具体还要让系统找到这个'动态链接库'!!
+
+
+  从上述可知, 如何找到'动态链接库'有3种方式：
+
+  (1)把'动态链接库'拷贝到/usr/lib和/lib目录下. 
+
+  (2)在LD_LIBRARY_PATH环境变量中加上库所在路径. 
+     例如：
+       '动态链接库'libtest2.so在/home/example/lib目录下：
+       export LD_LIBRARY_PATH=LD_LIBRARY_PATH:/home/example/lib
+       export LD_LIBRARY_PATH=LD_LIBRARY_PATH:. # 重启失效
+
+  (3)修改/etc/ld.so.conf文件, 把'动态链接库'所在的路径加到文件末尾
+     (直接写在文件末尾, 不要在路径前加include), 
+     并执行ldconfig刷新(ldconfig 命令的用途,主要是在默认搜寻目录(/lib和/usr/lib),
+     以及'动态链接库'配置文件/etc/ld.so.conf内所列的目录下,
+     搜索出可共享的'动态链接库'(格式如前介绍,lib*.so*),
+     进而创建出动态装入程序(ld.so)所需的连接和缓存文件.
+     缓存文件默认为/etc/ld.so.cache, 此文件保存已排好序的动态链接库名字列表.)
+
+  附：像下面这样指定路径去连接系统的静态库, 会报错说要连接的库找不到:
+  g++ -o main main.cpp -L/usr/lib libpthread.a 
+  (这里是'网文作者'理解错误了, libpthread.so.xxx 是一个动态库, 节省内存, .a 静态库是静态编译的.)
+
+  必须这样g++ -o main main.cpp -L/usr/lib -lpthread才正确. (ps: 这样其实就是动态链接库)
+
+
+
+
+
+*
+*2.ldd '共享链接库'debug 跟踪宏的on 启动.
+*
+//1. 常用的共享库'命令宏'
+//开启: 追踪'二进程程序'依赖的'共享库'关系
+//export LD_TRACE_LOADED_OBJECTS=1
+//关闭追踪:
+//unset LD_TRACE_LOADED_OBJECTS
+
+
+//2.静态编译, 动态编译原理简析:(( 废话, old 言论, 老套))
+//由于大部分系统软件都是依赖glibc 来实现的, 
+//从软件设计的角度, 使用共享库的方式节省系统内存, 非常符合高速高效重用的原则.
+//而且安全方面, 应该交给'访问控制'和'各种防火墙', 而不是系统本身.
+//
+//因此, linux/unix 使用libc.os.6 来存储glibc 大部分可以共享的模块.
+//同时, linux 使用ld-linux.so 来管理共享库装载工作.
+//(debian 下是: /lib64/ld-linux-x86-64.so.2)
+//linux 系统, 除了内核之外, 大部分软件都离不开共享库的支持, 
+//所以这两个共享库坏了, 系统基本也坏了.
+
+
+
+
+
+*
+*3.ldd 工作原理:
+*
+/*
+  3.1)
+    ldd不是一个可执行程序, 而只是一个'shell脚本'.
+    ldd能够显示可执行模块的dependency(所属), 
+    其原理是通过设置一系列的环境变量, 如下：
+      LD_TRACE_LOADED_OBJECTS、
+      LD_WARN、
+      LD_BIND_NOW、
+      LD_LIBRARY_VERSION、
+      LD_VERBOSE等. 
+    
+    例如:    
+    当LD_TRACE_LOADED_OBJECTS环境变量不为空时, 
+    任何可执行程序在运行时, 它都会只显示模块的dependency(所属), 
+    而程序并不真正执行. 
+    要不你可以在shell终端测试一下, 如下： 
+    export LD_TRACE_LOADED_OBJECTS=1 
+    再执行任何的程序, 如ls等, 看看程序的运行结果. 
+
+    当然,ldd 提供更多信息显示, 远比LD_TRACE_LOADED_OBJECTS 好用, 稍后介绍.
+
+
+  3.2)
+　　 ldd显示可执行模块的dependency(所属)的工作原理, 
+    其实质是通过ld-linux.so(elf动态库的装载器)来实现的. 
+    我们知道, ld-linux.so模块会先于executable模块程序工作, 并获得控制权, 
+    因此当上述的那些环境变量被设置时, 
+    ld-linux.so选择了显示可执行模块的dependency(所属).
+    实际上可以直接执行ld-linux.so模块, 如：
+    /lib/ld-linux.so.2 --list program(这相当于ldd program)
+    (debian 下是: /lib64/ld-linux-x86-64.so.2)
+
+
+
+
+
+*
+*4.ldd 命令详细:
+*
+--help：显示帮助信息.
+--version：打印指令版本号;
+
+
+
+-v：详细信息模式, 打印所有相关信息(显示'程序'执行过程中, 使用过的所有so 库信息和过程);
+ldd -v ./x
+
+
+-u：打印未使用的直接依赖(显示'程序'执行过程中, 包含了但没有使用的so 库);
+ldd -u ./x
+
+
+-d：执行重定位和报告任何丢失的对象(对'程序'所有的so 库重定位, 报告丢失的so 库);
+ldd -d ./x
+
+
+-r：执行数据对象和函数的重定位, 并且报告任何丢失的对象和函数(单纯只是-d 的超集);
+ldd -r ./x
+
+
+
+
