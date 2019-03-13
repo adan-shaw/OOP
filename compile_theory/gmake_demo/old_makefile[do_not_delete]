@@ -1,0 +1,162 @@
+#
+# ((方法2: 自己逐个文件预编译, 编译, 汇编, 链接, 最终得出二进制程序, 这样做麻烦, 但是理性些))
+#         要自己指明所有的.o 文件, 放弃!!
+#
+# 目标声明
+.PHONY: help all release install check clean lib
+#
+# 默认宏赋值
+CC := gcc
+CXX := g++
+#AR := ar
+
+
+# 注意: << # -I 范例(-i -I 都是加在编译时<附加的>... -l -L 都是加载<链接时用的>) >>
+# 编译选项[[注意: CPPFLAGS = C预处理器参数(C 和Fortran 编译器也会用到)]]
+# c 编译选项(gcc 特有)
+CFLAGS += -O2 -std=c11
+#
+# c/c++ 共有(由于c 和cpp 编译器可能会发生混编, 所以保留c or cpp 分立的局面...保留机动性)
+#CPPFLAGS += -O2 -std=c++0x
+#
+# c++ 特有
+CXXFLAGS += -O2 -std=c++0x
+#
+# 链接器参数(如:“-lld, -lpthread 等”)
+LDFLAGS += -lpthread
+
+
+# 追加宏定义(一般用来禁用assert(), 指定POSIX 版本)
+# posix 版本, 你不指定的话, gcc 默认也是使用posix 版本的标准, 而不是gnu 编译器标准
+DEFS += -DNDEBUG -D_POSIX_SOURCE
+
+
+#***
+# 目标文件, := 实际上等于 =, 是一个赋值操作
+TARGET := obj_out
+#LIB_TARGET := obj_lib.a
+#***
+
+
+#>>>>>
+# ((方法2: 自己逐个文件预编译, 编译, 汇编, 链接, 最终得出二进制程序, 这样做麻烦, 但是理性些))
+#
+# vpath %.cpp ./src/no_assert/:./src/make_project/
+# (拒绝使用vpath, 很麻烦, 还不如将所有路径自己串起来, 再用 $< $@ 自动化变量描述<编译依赖关系>, 主要是自动创建名称和遍历
+#  "$<"表示所有的依赖目标集, "$@"表示目标集)
+# 实际这个还是:
+# main.o: main.h main.cpp
+# $@ = main.o
+# $< = main.h main.cpp
+# 你还要指出所有的.o 文件, 很麻烦!!
+#
+# 用变量串起所有源文件, 如果要导入外部.h 文件, 请用-I 从CFLAGS/CXXFLAGS 编译时加插头文件, 然后在LDFLAGS 插入.a 静态库
+all_o += *.o 
+cpp_src += ./src/no_assert/*.cpp ./src/make_project/*.cpp
+#c_src := ./src/c_no_assert/*.c ./src/c_make_project/*.c
+
+
+#下面是所有的自动化变量及其说明: 
+
+#$@ 表示规则中的目标文件集. 在模式规则中, 如果有多个目标, 那么, "$@"就是匹配于目标中模式定义的集合. 
+
+#$% 仅当目标是函数库文件中, 表示规则中的目标成员名. 
+#   例如, 如果一个目标是"foo.a(bar.o)", 那么, "$%"就是"bar.o", "$@"就是"foo.a". 
+#   如果目标不是函数库文件(Unix下是[.a], Windows下是[.lib]), 那么, 其值为空. 
+
+#$< 依赖目标中的第一个目标名字. 
+#   如果依赖目标是以模式(即"%")定义的, 那么"$<"将是符合模式的一系列的文件集. 
+#   注意, 其是一个一个取出来的. 
+
+#$? 所有比目标新的依赖目标的集合. 以空格分隔. 
+
+#$^ 所有的依赖目标的集合. 以空格分隔. 如果在依赖目标中有多个重复的, 那个这个变量会去除重复的依赖目标, 只保留一份. 
+
+#$+ 这个变量很像"$^", 也是所有依赖目标的集合. 只是它不去除重复的依赖目标. 
+
+#$* 这个变量表示目标模式中"%"及其之前的部分. 
+#   如果目标是"dir/a.foo.b", 并且目标的模式是"a.%.b", 那么, "$*"的值就是"dir /a.foo". 
+#   这个变量对于构造有关联的文件名是比较有名. 
+
+#$(@D) 表示"$@"的目录部分(不以斜杠作为结尾), 如果"$@"值是"dir/foo.o", 那么"$(@D)"就是"dir", 
+#      而如果"$@"中没有包含斜杠的话, 其值就是"."(当前目录). 
+
+#$(@F) 表示"$@"的文件部分, 如果"$@"值是"dir/foo.o", 那么"$(@F)"就是"foo.o", "$(@F)"相当于函数"$(notdir$@)". 
+
+#<<<<<
+
+
+help:
+	@echo ""
+	@echo "passed, please make a choose target: make [target]"
+	@echo "[target]::{help all release install check clean lib}"
+	@echo "demo:"
+	@echo "make all"
+	@echo ""
+	@echo ""
+
+# 拦截游标, 硬性添加调试选项
+all:CFLAGS += -g3 -Wall
+	CXXFLAGS += -g3 -Wall
+all:
+	@echo ""
+	@echo ">>building all src with [-g3 -Wall]<<"
+	#$(CC) -c $(c_src) $(CFLAGS) $(DEFS)
+	$(CXX) -c $(cpp_src) $(CXXFLAGS) $(DEFS)
+	$(CXX) -o $(TARGET) $(all_o) $(LDFLAGS)
+	#$(CC) -o $(TARGET) $(all_o) $(LDFLAGS)
+	@echo ">>make target-all finish<<"
+	@echo ""
+	@echo ""
+	
+release:
+	@echo ""
+	@echo ">>building all src with [release]<<"
+	#$(CC) -c $(c_src) $(CFLAGS) $(DEFS)
+	$(CXX) -c $(cpp_src) $(CXXFLAGS) $(DEFS)
+	$(CXX) -o $(TARGET) $(all_o) $(LDFLAGS)
+	#$(CC) -o $(TARGET) $(all_o) $(LDFLAGS)
+	@echo ">>make target-release finish<<"
+	@echo ""
+	@echo ""
+	
+install:
+	@echo ""
+	@echo ">>install needs root authority<<"
+	@echo ""
+	@echo ""
+
+check:
+	@echo ""
+	@echo ">>all source file<<"
+	#@echo $(c_src)
+	@echo $(cpp_src)
+	@echo ""
+	@echo ">>checking all src<<"
+	#gcc -MM $(c_src)
+	g++ -MM $(cpp_src)
+	@echo ""
+	@echo ""
+
+clean:
+	@echo ""
+	rm $(TARGET) $(all_o)
+	@echo ">>clean up finish<<"
+	@echo ""
+	@echo ""
+	
+#lib:
+	#@echo ""
+	#@echo "building all src with < lib >"
+	#$(CC) -c $(c_src) $(CFLAGS) $(DEFS)
+	#$(CXX) -c $(cpp_src) $(CXXFLAGS) $(DEFS)
+	#ar -rc $(LIB_TARGET) $(all_o) $(LDFLAGS)
+	#@echo "make target-all finish"
+	#@echo ""
+	#@echo ""
+
+#so:
+  #-fPIC 编译共享库程序特有
+  #gcc -o libdynamic.so dynamic.o -shared -fPIC -L. -lxxx1 -lxxx2 -lxxx3
+
+
