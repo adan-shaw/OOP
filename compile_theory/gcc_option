@@ -1,0 +1,186 @@
+参考网文: https://blog.csdn.net/aifei7320/article/details/72818827
+
+
+*
+*1.常用的编译选项
+*
+1.1: gcc 基础选项
+  -E 仅作预处理, 不进行'编译', 汇编和链接.
+  -S 仅进行预处理和'编译', 不进行汇编和链接.
+  -c 预处理, '编译'和汇编出.o 文件, 不进行链接.
+  -o 链接生成最终目标.
+
+  -v 打印较多信息, 方便'编译时调用'的程序
+  -j4 多线程编译(-j4 表示4 线程编译)
+      (echo $?make -j4 [[查看多线程编译时出错的地方]])
+
+  -x 指定编译时所使用的'编程语言标准': 
+     c, objective-c, c-header, c++, cpp-output, assembler, assembler-with-cpp, none
+
+  -ansi 指定支持符合ANSI 标准的C程序, 关闭GNU C中某些不兼容ANSI C的特性.(ps: -ansi c = c89)
+
+  -std=c89 指明使用标准ISO C90 作为标准来编译程序
+  -std=c99 指明使用标准ISO C99 作为标准来编译程序
+  -std=c11
+  -std=c++98
+  -std=c++99
+  -std=c++0x 指明使用标准ISO C++11
+  -std=c++1y 指明使用标准ISO C++1y
+  -std=gnu99 指明使用GNU C99 拓展特性
+
+*****
+这部分不应该在编译时使用, 而应该在代码中解决问题. 一般比较少用.
+*****
+-fno-asm 此选项实现ansi选项的功能的一部分, 他禁止将asm,inline和typeof用作关键字.
+-fno-strict-prototype 只对g++起作用, 使用这个选项, g++将对不带参数的函数,
+                      都认为是没有显式的对参数的个数和类型说明,而不是没有参数.
+                      而gcc无论是否使用这个参数, 都将对没有带参数的函数, 认为城没有显式说明的类型 
+-fthis-is-varialble 就是向传统c++看齐,能够使用this当一般变量使用.
+-fcond-mismatch 允许条件表达式的第二和第三参数类型不匹配,表达式的值将为void类型 
+
+-funsigned-char  这四个参数是对char类型进行配置, 决定将char类型配置成unsigned char(前两个参数)
+-fno-signed-char 或signed char(后两个参数)
+-fsigned-char
+-fno-unsigned-char
+*****
+
+  -include mysql.h 包含某个文件, 功能就相当于在代码中使用#include<mysql.h>  
+  例子用法:
+  gcc hello.c -include /root/pianopan.h  
+
+  -static 此选项将禁止使用动态库, 所以, 编译出来的东西, 一般都很大.
+  -share 此选项将尽量使用动态库, 所以生成文档比较小, 但是需要系统由动态库.
+
+  -D 添加编译宏, 例如: -DNDEBUG, 表示'禁用assert()'. 
+     一般情况下, makefile 中, 用默认宏DEFS += -DNDEBUG, 来存储-D 编译宏
+
+
+
+
+
+1.2: 编译过程中的警告信息
+  -w 禁止显示所有警告信息
+  -W 打印一些额外警告信息(-Wextra)
+  -Wall 会打开一些很有用的警告选项, 建议编译时加此选项
+
+  -Wshadow 当一个局部变量遮盖住了另一个局部变量, 或者全局变量时, 给出警告. 
+           很有用的选项, -Wall 并不会打开此项. 
+  -Wpointer-arith 对函数指针或者void *类型的指针进行算术操作时给出警告. 
+                  很有用的选项, -Wall 并不会打开此项. 
+
+
+
+
+
+1.3: Debug 编译出'加载调试信息'的程序
+  -g3 posix 标准的调试信息
+  -ggdb3 GNU 标准的调试信息(仅gnu 标准的代码可以使用, 编译出来的程序, 也只能使用gdb 来调试)
+         3只是debug 信息级别, 1-3 级别
+
+    -g和-ggdb之间只有细微的区别, 具体来说:
+    -g    产生的debug信息是OS native format, (OS原生格式)
+          GDB也可以使用, 但一般面向通用debug 调试器
+
+    -ggdb 产生的debug信息更倾向于给GDB使用的.
+          -ggdb 生成gdb专用的调试信息, 使用最适合的格式(DWARF 2,stabs等)
+          会有一些gdb专用的扩展, 可能造成其他调试器无法运行.
+
+    一般情况下, 特异平台, 一般使用-g 编译出debug 信息, 如freebsd 下使用GNU, 非linux 平台下使用GNU.
+    常用的Debug选项还有:
+    -gstabs: 使用stabs 格式, 不包含gdb扩展, stabs常用于BSD系统的DBX调试器.
+    -gcoff: 产生COFF格式的调试信息, 常用于System V下的SDB调试器;
+    -gxcoff: 产生XCOFF格式的调试信息, 用于IBM的RS/6000下的DBX调试器;
+    -gdwarf-2: 产生DWARF version2 的格式的调试信息, 
+               常用于IRIXX6上的DBX调试器. 
+               GCC会使用DWARF version3的一些特性.
+
+
+  -pg 编译出'带有性能调试信息'的程序, 仅GNU 标准的代码有效!! 性能调试工具是: gprof, 而并非gdb
+      具体实现原理: 应用程序里的每一个函数都会调用mcount, mcount 会在内存中保存一张函数调用图, 
+                  '这张调用图'保存了所有与函数相关的调用时间, 调用次数等等的所有信息. 
+      详情请看文档: 'gprof 性能debug'
+
+
+
+
+
+2.4: 简单的优化选项: (可以与debug 选项联合使用)
+     -O0 禁止编译器进行优化. 默认为此项. 
+     -O  尝试优化编译时间和可执行文件大小(即是: -O1 级别). 
+     -O2 更多的优化, 会尝试几乎全部的优化功能, 
+         但不会进行'空间换时间'的优化方法. 
+     -O3 在-O2 的基础上再打开一些优化选项: 
+         -finline-functions, -funswitch-loops和-fgcse-after-reload
+     -Os 对生成文件大小进行优化. 它会打开-O2 开的全部选项, 
+         并且尽量静态编译(内核编译经常用)
+
+
+
+
+
+
+
+
+*
+*2.不常用的编译选项
+*
+< 再往下就不是通用gcc 编译选项了, 是一些比较不常用的编译选项>
+
+
+2.5: 针对c 语言的编译选项: <C options> -- 作用不大
+-fsigned-char 把char定义为有/无符号类型,即令signed char = unsigned char
+-traditional 尝试支持传统C编译器的某些方面. 详见GNU C手册. 
+-fno-builtin 不接受没有__builtin_ 前缀的函数作为内建函数
+             (-fno-builtin-function 也是一样)
+-trigraphs 支持ANSI C的三联符(trigraphs). `-ansi'选项隐含声明了此选项. 
+-fsigned-bitfields 如果没有明确声明`signed'或`unsigned'修饰符, 
+                   这些选项用来定义有符号位域或无符号位域. 
+                   缺省情况下, 位域是有符号的, 因为它们继承的基本整数类型, 
+                   如int, 是有符号数.(-funsigned-bitfields 也是一样)
+-Wstrict-prototypes 如果函数的声明或定义没有指出参数类型, 编译器就发出警告. 
+-Wmissing-prototypes 如果没有预先声明就定义了全局函数, 编译器就发出警告. 
+                     即使函数定义自身提供了函数原形也会产生这个警告. 
+                     这个选项的目的是检查没有在头文件中声明的全局函数. 
+-Wnested-externs 如果某extern声明出现在函数内部, 编译器就发出警告. 
+
+
+2.6: 针对c++ 语言的编译选项:
+-ffor-scope 从头开始执行程序, 也允许进行重定向. 
+-fno-rtti 关闭对 dynamic_cast 和 typeid 的支持. 
+          如果你不需要这些功能, 关闭它会节省一些空间. 
+-Wctor-dtor-privacy 当一个类没有用时给出警告. 
+                    因为构造函数和析构函数会被当作私有的. 
+-Wnon-virtual-dtor 当一个类有多态性, 而又没有虚析构函数时, 发出警告. 
+                   -Wall会开启这个选项. 
+-Wreorder 如果代码中的成员变量的初始化顺序和它们实际执行时初始化顺序不一致, 
+          给出警告. 
+-Wno-deprecated 使用过时的特性时不要给出警告. 
+-Woverloaded-virtual 如果函数的声明隐藏住了基类的虚函数, 就给出警告. 
+
+
+2.8: 芯片优化选择项:(Machine Dependent Options (Intel)
+                  arm gcc 也有arm gcc 编译优化选项)		 
+-mtune=cpu-type	为指定类型的 CPU 生成代码. 
+       cpu-type可以是：i386, i486, i586, pentium, i686, pentium4等. 
+     
+     -msse 使用或者不使用MMX, SSE, SSE2指令. 
+     -msse2 
+     -mmmx 
+     -mno-sse 
+     -mno-sse2 
+     -mno-mmx	
+
+     -m32 生成32位/64位机器上的代码.  
+     -m64
+
+     -mpush-args (不)使用 push 指令来进行存储参数, 
+                     默认是使用.(-mno-push-args 也是一样)
+     -mregparm=num 当传递整数参数时, 控制所使用寄存器的个数. 
+ 
+
+
+3. O1, O2, O3 编译优化选项详解:(暂时还没详细解析, 你自己慢慢阅读)
+https://blog.csdn.net/eroswang/article/details/1966640
+https://blog.csdn.net/aifei7320/article/details/72818827
+
+
