@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/AesBlock.dir/AesBlock.c.o  -o AesBlock ../../libWjCryptLib.a 

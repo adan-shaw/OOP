@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/Sha256String.dir/Sha256String.c.o  -o Sha256String ../../libWjCryptLib.a 

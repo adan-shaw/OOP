@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/Md5String.dir/Md5String.c.o  -o Md5String ../../libWjCryptLib.a 

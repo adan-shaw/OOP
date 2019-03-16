@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/Sha512String.dir/Sha512String.c.o  -o Sha512String ../../libWjCryptLib.a 

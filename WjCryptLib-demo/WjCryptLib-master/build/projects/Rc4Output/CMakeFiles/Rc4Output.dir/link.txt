@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/Rc4Output.dir/Rc4Output.c.o  -o Rc4Output ../../libWjCryptLib.a 

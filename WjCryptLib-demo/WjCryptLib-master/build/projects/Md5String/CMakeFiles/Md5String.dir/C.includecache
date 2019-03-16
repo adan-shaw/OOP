@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lib/WjCryptLib_Md5.h
+stdint.h
+-
+stdio.h
+-
+
+/home/adan/svn/C/extern_lib/sha1_256_512/WjCryptLib-master/projects/Md5String/Md5String.c
+stdio.h
+-
+stdlib.h
+-
+stdint.h
+-
+string.h
+-
+WjCryptLib_Md5.h
+/home/adan/svn/C/extern_lib/sha1_256_512/WjCryptLib-master/projects/Md5String/WjCryptLib_Md5.h
+

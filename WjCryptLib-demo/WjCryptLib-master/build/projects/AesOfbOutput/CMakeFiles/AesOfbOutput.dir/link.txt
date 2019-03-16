@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/AesOfbOutput.dir/AesOfbOutput.c.o  -o AesOfbOutput ../../libWjCryptLib.a 

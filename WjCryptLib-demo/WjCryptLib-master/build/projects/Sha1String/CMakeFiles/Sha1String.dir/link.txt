@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/Sha1String.dir/Sha1String.c.o  -o Sha1String ../../libWjCryptLib.a 
